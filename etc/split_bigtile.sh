@@ -1,7 +1,19 @@
 #!/bin/bash
 set -e
-
-# written by seth gorelik, 10/5/25
+#
+# split_bigtile.sh
+#
+# Purpose:
+#	Worker code to split big tiles (40,000 x 40,000 pixels) into smaller 
+#	(1,000 x 1,000 pixel) subtiles, only keeping subtiles that have valid 
+#	data pixels.
+#
+# History:
+#	Written by Seth Gorelik, 10/5/25
+#	
+# Notes:
+#	Parallelized execution.
+#
 
 # get parameters
 BIGTILE_ID="$1"
@@ -31,7 +43,7 @@ SUBTILE_SIZE=1000
 
 # set number of cores to use
 NUM_CPU=$(nproc --all)
-NUM_CPU2=$(expr $NUM_CPU - 2)
+NUM_CPU2=$(expr $NUM_CPU - 1)
 
 # function to process each tile
 process_tile() {
