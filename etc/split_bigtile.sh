@@ -37,15 +37,16 @@ NUM_CPU2=$(expr $NUM_CPU - 2)
 process_tile() {
 	
 	# get parameters
-	BIGTILE_FILE=$1
-	SUBTILE_ID=$2
-	SUBTILE_SIZE=$3
-	X_OFFSET=$4
-	Y_OFFSET=$5
-	OUTPUT_DIR=$6
+	BIGTILE_ID=$1
+	BIGTILE_FILE=$2
+	SUBTILE_ID=$3
+	SUBTILE_SIZE=$4
+	X_OFFSET=$5
+	Y_OFFSET=$6
+	OUTPUT_DIR=$7
 	
 	# set output subtile name
-	SUBTILE_FILE="${OUTPUT_DIR}/subtile_${SUBTILE_ID}.tif"
+	SUBTILE_FILE="${OUTPUT_DIR}/tile_${BIGTILE_ID}_subtile_${SUBTILE_ID}.tif"
 	
 	# create tile
 	gdal_translate -of GTiff -ot UInt16 -a_nodata 0 -co "COMPRESS=LZW" -srcwin "$X_OFFSET" "$Y_OFFSET" "$SUBTILE_SIZE" "$SUBTILE_SIZE" "$BIGTILE_FILE" "$SUBTILE_FILE" &> /dev/null
@@ -75,7 +76,7 @@ for ((Y = 0; Y < $BIGTILE_HEIGHT; Y += $SUBTILE_SIZE)); do
 		Y_OFFSET=$Y
 		
 		# print to stdout for parallel to read
-		echo "$BIGTILE_FILE,$SUBTILE_ID,$SUBTILE_SIZE,$X_OFFSET,$Y_OFFSET,$OUTPUT_DIR"
+		echo "$BIGTILE_ID,$BIGTILE_FILE,$SUBTILE_ID,$SUBTILE_SIZE,$X_OFFSET,$Y_OFFSET,$OUTPUT_DIR"
 		
 	done
-done | parallel -j $NUM_CPU2 --colsep ',' 'process_tile {1} {2} {3} {4} {5} {6}'
+done | parallel -j $NUM_CPU2 --colsep ',' 'process_tile {1} {2} {3} {4} {5} {6} {7}'
