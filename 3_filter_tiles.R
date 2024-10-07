@@ -12,130 +12,71 @@
 #	Updated by Seth Gorelik, 10/6/24, to filter 30m tiles
 #
 
-library(raster)
-library(dplyr)
-library(ggplot2)
-library(patchwork)
-library(ggh4x)
-library(scales)
-library(viridis)
+source('etc/functions.R')
 
-df <- read.csv('results/tile_stats_1000px_V1.csv')
+# read in table of tile stats
+df <- read.csv('output/stats_all_tiles.csv', stringsAsFactors = F)
 
-df.results <- df %>%
-	mutate(
-		# mean_norm = ((mean_mgha - min_mgha) / (max_mgha - min_mgha)) * 100,
-		median_norm = ((median_mgha - min_mgha) / (max_mgha - min_mgha)) * 100
-	) %>%
-	filter((na_count == 0) & (median_norm > 40) & (median_norm < 60)) %>%
+# bin count under uniform distribution
+uniform.bin.cnt <- 1000*1000/9
 
-	rowwise() %>%
-	mutate(
-		# bind_cols(get.hist.cnts(file)),
-		# bins_std = sd(c_across(c(starts_with('bin_'))))
-		bind_cols(get.hist.range(file))
-	) %>%
-	ungroup() %>%
+# set lower and upper bounds for bin counts
+lwr.cnt <- uniform.bin.cnt * (2/3)
+upr.cnt <- uniform.bin.cnt * (4/3)
 
-	arrange(bin_range) %>%
-	select(file, bin_min, bin_max, bin_std, bin_range)
-
-nrow(df.results)
-print(df.results, n = 50)
-
-plot(df.results$bin_std, df.results$bin_range)
-
-e <- 100*100/9
-
-df.p <- df.results %>%
-	filter(bin_min > (e*1/3) & bin_max < (e*5/3)) %>%
-	arrange(bin_std) %>%
-	as.data.frame()
-
-
-plot.results <- function(f, i = NULL, n = NULL) {
+# filter tiles
+df.f <- df %>%
 	
-	# prep data
-	r <- raster(paste0('~/data/harris30m/', f))
-	r[is.na(r)] <- 0
-	v <- values(r)
-	v.norm <- ((v - min(v)) / (max(v) - min(v))) * 100
-	values(r) <- v.norm
-	names(r) <- 'value'
-	r.df <- as.data.frame(r, xy = T)
+	# remove tiles with NAs
+	filter(na_cnt == 0) %>% 
 	
-	brks <- seq(0, 100, length.out = 10)
-	r.hist <- hist(r, breaks = brks, plot = F)
-	cnts <- r.hist$counts
-	mids <- r.hist$mids
+	# remove tiles with skewed distribution
+	filter((median_rscd > 40) & (median_rscd < 60)) %>% 
 	
-	title <- ifelse(is.null(i) | is.null(n), '', paste0(i, '/', n))
+	# remove tiles with very low or very high bin counts
+	filter(min_hist_cnt > lwr.cnt & max_hist_cnt < upr.cnt) %>% 
 	
-	p1 <- ggplot() +
-		geom_col(aes(x = mids, y = cnts), color = 'black', fill = 'gray', width = brks[2]) + 
-		scale_x_continuous(guide = guide_axis_truncated(), breaks = seq(0, 100, by = 20)) +
-		scale_y_continuous(guide = guide_axis_truncated(trunc_lower = min, trunc_upper = max), labels = comma) + 
-		expand_limits(y = max(cnts)+400) +
-		labs(x = NULL, y = NULL, title = title, subtitle = f) +
-		coord_fixed(ratio = 50/max(cnts), clip = 'off') +
-		theme_classic() +
-		theme(
-			axis.text = element_text(size = 12),
-			axis.ticks.length = unit(8, 'points'),
-			plot.title = element_text(hjust = 0.5, face = 'bold'),
-			plot.subtitle = element_text(hjust = 0.5)
-		)
-	
-	p2 <- ggplot(data = r.df, aes(x = x, y = y, fill = value)) +
-		geom_raster() +
-		scale_fill_gradientn(colors = viridis(256, direction = -1), guide = guide_colorbar(
-			frame.colour = 'black', 
-			ticks = F, 
-			barheight = unit(0.4, 'npc'),
-			title = NULL,
-			frame.linewidth = 1/.pt
-		)) +
-		coord_equal() +
-		theme_void() +
-		theme(
-			legend.text = element_text(size = 12)
-		)
-	
-	plot(p1 / p2)
-	
-}
+	# sort by std
+	arrange(std_hist_cnt)
+
+# number of tiles after filters
+nrow(df.f)
+
+# view tiles
+df.f %>% 
+	select(file, median_rscd, min_hist_cnt, max_hist_cnt, std_hist_cnt, range_hist_cnt)
+
+
+# plot.results(paste0('tile_00N_020E_subtile_24000_39000', '.tif'))
 
 # pretty ones form the amazon:
-# tile_00N_060W_subtile_39000_04000.tif
 # tile_00N_060W_subtile_37000_04000.tif - so cool! rivers!
+# tile_00N_060W_subtile_39000_04000.tif
 # tile_00N_060W_subtile_36000_05000.tif
 
-plot.results('tile_00N_060W_subtile_00000_00000.tif')
+# gray color scale
+gray.pal <- c('#FFFFFF', '#F0F0F0', '#E0E0E0', '#CECECE', '#BABABA', '#A3A3A3', '#888888', '#636363', '#000000')
 
-
-round2 <- function(x, digits = 0) {
-	# credit: https://stackoverflow.com/a/12688836
-	posneg <- sign(x)
-	z <- abs(x)*10^digits
-	z <- z + 0.5 + sqrt(.Machine$double.eps)
-	z <- trunc(z)
-	z <- z/10^digits
-	return(z*posneg)
-}
-
-convert.raster.to.row <- function(f) {
-	r <- raster(paste0('~/data/uw/tiles100/', f))
-	v <- values(r)
-	v.norm <- ((v - min(v)) / (max(v) - min(v))) * 100
-	v.norm.int <- round2(v.norm)
-	return(v.norm.int)
-}
-
-# export
-for (i in 1:nrow(df.p)) {
-	f <- df.p$file[i]
+# export all maps to single pdf
+pdf(paste0('output/maps_', nrow(df.f), '_grayscale.pdf'), paper = 'letter', onefile = T)
+for (i in 1:nrow(df.f)) {
+	f <- df.f$file[i]
 	cat(paste0(i, '. ', f), fill = T)
-	vals <- convert.raster.to.row(f)
-	line <- paste0(f, ',', paste0(vals, collapse = ','))
-	write(line, file = '~/repos/uw/results/tiles.csv', append = T)
+	plot.results(f, pal = gray.pal, with_hist = F, with_legend = F)
 }
+dev.off()
+
+# export all tile values to single csv
+csv.out <- paste0('output/values_', nrow(df.f), '_tiles.csv')
+for (i in 1:nrow(df.f)) {
+	f <- df.f$file[i]
+	cat(paste0(i, '. ', f), fill = T)
+	r <- get.rescaled.raster(f)
+	v <- round2(values(r))
+	row <- paste0(f, ',', paste0(v, collapse = ','))
+	write(row, file = csv.out, append = T)
+}
+
+# offload to bucket (it's ~124MB)
+system(paste('gsutil -m cp', csv.out, 'gs://uw-ks-data/harris30m/'), ignore.stdout = T, ignore.stderr = T)
+
