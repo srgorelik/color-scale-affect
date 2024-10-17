@@ -28,7 +28,7 @@ color.scale.hex <- c('#FFFFFF', '#F0F0F0', '#E0E0E0', '#CECECE', '#BABABA', '#A3
 color.scale.name <- 'gray'
 
 # set path to input CSV file
-inp.csv <- 'all_values_for_16_maps.csv'
+inp.csv <- 'map_values_V2.csv'
 
 # set output directory
 out.dir <- '~/output_maps/'

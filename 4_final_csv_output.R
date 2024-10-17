@@ -31,7 +31,7 @@ df.f <- df %>%
 stopifnot(nrow(df.f) == num.maps)
 
 # export map values to single csv
-csv.out <- paste0('output/all_values_for_', num.maps, '_maps.csv')
+csv.out <- 'output/map_values_V2.csv'
 for (i in 1:num.maps) {
 	
 	cat(paste0('Map ', i, '/', num.maps, ':'), fill = T)
