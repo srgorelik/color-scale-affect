@@ -17,6 +17,25 @@ library(ggh4x)
 library(scales)
 library(viridis)
 
+
+# better rounding function (i.e., normal rounding)
+# converts to integer if digits = 0
+round2 <- function(x, digits = 0) {
+	# function adapted from https://stackoverflow.com/a/12688836
+	posneg <- sign(x)
+	z <- abs(x) * 10 ^ digits
+	z <- z + 0.5 + sqrt(.Machine$double.eps)
+	z <- trunc(z)
+	z <- z / 10 ^ digits
+	x.new <- z * posneg
+	if (digits == 0) {
+		x.new <- as.integer(x.new)
+	}
+	return(x.new)
+}
+
+
+# function to rescale rasters from ≥0 Mg/ha to a range of 0-100 
 get.rescaled.raster <- function(f) {
 	
 	# local raster path
@@ -50,7 +69,7 @@ get.rescaled.raster <- function(f) {
 
 
 # function to plot histogram and map
-plot.results <- function(f, pal = viridis(256, direction = -1), title = NULL, with_hist = T, with_legend = T) {
+preview.map <- function(f, pal = viridis(256, direction = -1), title = NULL, with_hist = T, with_legend = T) {
 	
 	# get raster
 	r <- get.rescaled.raster(f)
@@ -128,19 +147,20 @@ plot.results <- function(f, pal = viridis(256, direction = -1), title = NULL, wi
 }
 
 
-# better rounding function (i.e., normal rounding)
-# converts to integer if digits = 0
-round2 <- function(x, digits = 0) {
-	# function adapted from https://stackoverflow.com/a/12688836
-	posneg <- sign(x)
-	z <- abs(x) * 10 ^ digits
-	z <- z + 0.5 + sqrt(.Machine$double.eps)
-	z <- trunc(z)
-	z <- z / 10 ^ digits
-	x.new <- z * posneg
-	if (digits == 0) {
-		x.new <- as.integer(x.new)
-	}
-	return(x.new)
+# function to save geotiff as a png file using a provided color scale
+save.map.png <- function(inp_tif, pal, out_png) {
+	
+	# open geotiff from disk, rescaled from 0 to 100
+	r <- get.rescaled.raster(inp_tif)
+	
+	# convert to integer
+	values(r) <- round2(values(r))
+	
+	# save map to PNG file on disk 
+	png(filename = out_png, width = 1000, height = 1000, units = 'px')
+	par(mar = c(0, 0, 0, 0))
+	image(r, axes = F, asp = 1, useRaster = T, col = pal)
+	dev.off()
+
 }
 

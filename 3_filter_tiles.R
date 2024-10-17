@@ -14,6 +14,10 @@
 
 source('etc/functions.R')
 
+# ---------------------------------------------------------------------
+# initial filtering of tiles (down from >200,000 to <60) 
+# ---------------------------------------------------------------------
+
 # read in table of tile stats
 df <- read.csv('output/stats_all_tiles.csv', stringsAsFactors = F)
 
@@ -40,43 +44,51 @@ df.f <- df %>%
 	arrange(std_hist_cnt)
 
 # number of tiles after filters
-nrow(df.f)
+nrow(df.f) # 44
 
-# view tiles
+# view list of tiles (initial set)
 df.f %>% 
 	select(file, median_rscd, min_hist_cnt, max_hist_cnt, std_hist_cnt, range_hist_cnt)
 
-
-# plot.results(paste0('tile_00N_020E_subtile_24000_39000', '.tif'))
+# review results
+# preview.map(paste0('tile_00N_020E_subtile_24000_39000', '.tif'))
 
 # pretty ones form the amazon:
-# tile_00N_060W_subtile_37000_04000.tif - so cool! rivers!
-# tile_00N_060W_subtile_39000_04000.tif
-# tile_00N_060W_subtile_36000_05000.tif
+# tile_00N_060W_subtile_37000_04000 - so cool! rivers!
+# tile_00N_060W_subtile_39000_04000
+# tile_00N_060W_subtile_36000_05000
 
-# gray color scale
+# add map id to table
+df.f <- df.f %>% 
+	mutate(map_id = row.names(.), .before = file)
+
+# save table to csv on disk
+write.csv(df.f, file = 'output/stats_filtered_tiles_set1.csv', row.names = F)
+
+# ---------------------------------------------------------------------
+# save initial set of maps as gray scale PNGs (for first phase)
+# ---------------------------------------------------------------------
+
+# gray color scale with 9 steps
 gray.pal <- c('#FFFFFF', '#F0F0F0', '#E0E0E0', '#CECECE', '#BABABA', '#A3A3A3', '#888888', '#636363', '#000000')
 
-# export all maps to single pdf
-pdf(paste0('output/maps_', nrow(df.f), '_grayscale.pdf'), paper = 'letter', onefile = T)
-for (i in 1:nrow(df.f)) {
-	f <- df.f$file[i]
-	cat(paste0(i, '. ', f), fill = T)
-	plot.results(f, pal = gray.pal, with_hist = F, with_legend = F)
-}
-dev.off()
+# set output directory
+out.dir <- 'output/gray_highres_maps/'
+dir.create(out.dir, showWarnings = F)
 
-# export all tile values to single csv
-csv.out <- paste0('output/values_', nrow(df.f), '_tiles.csv')
+# save maps as gray scale PNGs
 for (i in 1:nrow(df.f)) {
-	f <- df.f$file[i]
-	cat(paste0(i, '. ', f), fill = T)
-	r <- get.rescaled.raster(f)
-	v <- round2(values(r))
-	row <- paste0(f, ',', paste0(v, collapse = ','))
-	write(row, file = csv.out, append = T)
+	
+	cat(paste0('Map ', i, '/', nrow(df.f), ':'), fill = T)
+	
+	inp.tif <- df.f$file[i]
+	cat(paste(' Input:', inp.tif), fill = T)
+	
+	map.id <- df.f$map_id[i]
+	out.png <- paste0(out.dir, 'gray_', sprintf("%02d", map.id), '.png')
+	cat(paste(' Output:', basename(out.png)), fill = T)
+	
+	save.map.png(inp_tif = inp.tif, pal = gray.pal, out_png = out.png)
+	
 }
-
-# offload to bucket (it's ~124MB)
-system(paste('gsutil -m cp', csv.out, 'gs://uw-ks-data/harris30m/'), ignore.stdout = T, ignore.stderr = T)
 
