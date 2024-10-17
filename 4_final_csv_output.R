@@ -3,6 +3,10 @@
 # 4_final_csv_output.R
 # 
 # Purpose:
+#	To compile a single CSV of the values for final set of tiles. Each row 
+#	in output CSV will correspond to a single map and will contain the Map 
+#	ID followed by all 1,000,000 integer values (ranging from 0 to 100) in
+#	that map.
 #
 # History:
 #	Written by Seth Gorelik, 10/17/24

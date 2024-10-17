@@ -3,9 +3,8 @@
 # 3_filter_tiles.R
 # 
 # Purpose:
-#	To determine which tiles to use as stimuli, and compile single CSV of the
-#	values for all tiles, i.e., each row contains all 1,000,000 values for a single
-#	tile.
+#	To determine which tiles to use as initial set of stimuli, and save 
+#	filtered set of maps as gray scale PNGs.
 #
 # History:
 #	Written by Seth Gorelik, 9/22/24
