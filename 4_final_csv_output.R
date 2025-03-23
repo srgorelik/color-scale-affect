@@ -22,7 +22,7 @@ num.maps <- length(map.id.list) # 16
 df <- read.csv('output/stats_filtered_tiles_set1.csv', stringsAsFactors = F)
 nrow(df) # 44
 
-# get geotiff assocaited with each map id
+# get geotiff associated with each map id
 df.f <- df %>% 
 	filter(map_id %in% map.id.list) %>% 
 	select(map_id, file)
