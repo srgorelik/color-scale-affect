@@ -31,7 +31,7 @@ color.scale.name <- 'gray'
 inp.csv <- 'map_values_V2.csv'
 
 # set output directory
-out.dir <- '~/output_maps/'
+out.dir <- '~/output/'
 
 # ====================================================================
 # DON'T CHANGE CODE BELOW
